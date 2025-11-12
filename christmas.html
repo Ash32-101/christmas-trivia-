@@ -1,0 +1,264 @@
+<div id="xmas-terminal-widget"></div>
+<script>
+(function(){
+  const mount = document.getElementById("xmas-terminal-widget");
+  mount.innerHTML = `
+  <style>
+  .xmas-wrap {
+    font-family: 'Courier New', monospace;
+    background: radial-gradient(circle at top, #12301c 0%, #07140b 80%);
+    color: #fffdf5;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.25), 0 0 45px rgba(0, 255, 0, 0.15);
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Snow animation */
+  .xmas-snow {
+    position:absolute;
+    top:0;left:0;right:0;bottom:0;
+    pointer-events:none;
+    background-image:
+      radial-gradient(circle at 10% 10%,rgba(255,255,255,0.4) 0 1px,transparent 1px),
+      radial-gradient(circle at 50% 80%,rgba(255,255,255,0.3) 0 1px,transparent 1px),
+      radial-gradient(circle at 90% 30%,rgba(255,255,255,0.35) 0 1px,transparent 1px);
+    background-size:200% 200%;
+    animation:xmasSnow 10s linear infinite;
+  }
+
+  @keyframes xmasSnow {
+    0%{background-position:0 0;}
+    100%{background-position:100% 100%;}
+  }
+
+  .xmas-header {
+    color:#ffdf80;
+    font-weight:700;
+    font-size:20px;
+    text-shadow:0 0 10px #ff3b3b, 0 0 18px #ffdf80;
+    margin-bottom:10px;
+    text-align:center;
+  }
+
+  .xmas-output {
+    background:#101b12;
+    border-radius:8px;
+    padding:12px;
+    height:260px;
+    overflow:auto;
+    font-size:14px;
+    line-height:1.45;
+    box-shadow:inset 0 0 20px rgba(0,0,0,0.6);
+    border:1px solid rgba(255,255,255,0.1);
+  }
+
+  .xmas-line{margin:3px 0;}
+  .xmas-line.prompt{color:#80ff80;}
+  .xmas-line.system{color:#ffdf80;}
+  .xmas-line.correct{color:#90ff9b;}
+  .xmas-line.wrong{color:#ff7070;}
+  .xmas-input{display:flex;gap:8px;margin-top:10px;}
+
+  .xmas-input input{
+    flex:1;
+    background:#182f1b;
+    color:#dcffe2;
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:6px;
+    padding:8px;
+    font-family:inherit;
+    font-size:14px;
+  }
+
+  .xmas-btn{
+    background:linear-gradient(145deg,#c60000,#ff3636);
+    border:none;
+    color:#fff5e0;
+    padding:8px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+    box-shadow:0 0 10px rgba(255,0,0,0.4);
+    transition:all 0.25s ease;
+  }
+
+  .xmas-btn:hover{
+    background:linear-gradient(145deg,#e51a1a,#ff4f4f);
+    box-shadow:0 0 15px rgba(255,0,0,0.7);
+  }
+
+  .xmas-footer{
+    text-align:center;
+    font-size:12px;
+    color:#8aff8d;
+    margin-top:8px;
+    text-shadow:0 0 4px #2cff2c;
+  }
+
+  .reward{
+    text-align:center;
+    font-size:16px;
+    padding:14px;
+    color:#fff8e3;
+    text-shadow:0 0 10px #ffdf80, 0 0 15px #ff3b3b;
+  }
+
+  .reward-emoji{
+    font-size:40px;
+    display:block;
+    margin-bottom:8px;
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%{transform:scale(1);}
+    50%{transform:scale(1.1);}
+    100%{transform:scale(1);}
+  }
+</style>
+
+<div class="xmas-wrap">
+  <div class="xmas-snow"></div>
+  <div class="xmas-header">Christmas Trivia Terminal</div>
+  <div class="xmas-output" id="xmasOut" aria-live="polite"></div>
+  <div class="xmas-input">
+    <input id="xmasInput" placeholder="Type your answer or command" />
+    <button id="xmasSend" class="xmas-btn">Enter</button>
+  </div>
+  <div class="xmas-footer">
+    Type <code>start</code> to begin. Type <code>help</code> for commands.
+  </div>
+</div>
+  `;
+
+  const trivia = [
+    {q:"Which country began the tradition of the Christmas tree?", a:["germany"], hint:"Central Europe."},
+    {q:"What red-and-white candy is a Christmas classic?", a:["candy cane","candy canes"], hint:"Sweet and striped!"},
+    {q:"What beverage is known as 'Christmas milk punch'?", a:["eggnog"], hint:"Contains milk and eggs."},
+    {q:"How many reindeer pull Santa’s sleigh including Rudolph?", a:["9","nine"], hint:"One more than eight!"},
+    {q:"In 'The 12 Days of Christmas', what’s given on day five?", a:["five golden rings","five gold rings"], hint:"Something shiny!"},
+    {q:"Which plant is hung up for people to kiss under?", a:["mistletoe"], hint:"Small white berries."},
+    {q:"What red plant decorates many homes at Christmas?", a:["poinsettia"], hint:"Named after a U.S. diplomat."},
+    {q:"What’s Santa’s favorite snack left out by kids?", a:["cookies","milk","milk and cookies"], hint:"Sweet and crunchy."}
+  ];
+
+  const out = mount.querySelector("#xmasOut");
+  const input = mount.querySelector("#xmasInput");
+  const btn = mount.querySelector("#xmasSend");
+
+  let stage = "intro"; 
+  let idx = 0;
+  let score = 0;
+
+  function print(msg, cls="system"){
+    const d = document.createElement("div");
+    d.textContent = msg;
+    d.className = "xmas-line "+cls;
+    out.appendChild(d);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function intro(){
+    out.innerHTML="";
+    print("Welcome to the Christmas Trivia Terminal!", "system");
+    print("Created by m0rphin3_", "system");
+    print("");
+    print("You’ll answer fun, festive questions.", "system");
+    print("Commands you can type anytime:", "system");
+    print("→ help   = show available commands");
+    print("→ hint   = get a hint for the current question");
+    print("→ skip   = skip to the next question");
+    print("→ score  = show your current score");
+    print("→ restart = start again from the beginning");
+    print("");
+    print("Type 'start' when you’re ready to begin! 🎄");
+  }
+
+  function ask(){
+    if(idx < trivia.length){
+      print("");
+      print("Question "+(idx+1)+": "+trivia[idx].q, "prompt");
+    } else {
+      finish();
+    }
+  }
+
+  function handle(cmd){
+    const text = cmd.trim().toLowerCase();
+    if(!text) return;
+
+    if(stage==="intro"){
+      if(text==="start"){ 
+        stage="playing"; idx=0; score=0; out.innerHTML="";
+        print("✨ Let’s go, Christmas expert! ✨","system"); 
+        ask(); 
+      }
+      else if(text==="help"){ intro(); }
+      else print("Type 'start' to begin the trivia! 🎄","system");
+      return;
+    }
+
+    if(stage==="finished"){
+      if(text==="restart"){ stage="playing"; idx=0; score=0; out.innerHTML=""; print("Restarting...","system"); ask(); }
+      else print("Trivia complete! Type 'restart' to play again.","system");
+      return;
+    }
+
+    if(text==="help"){ print("Commands: hint, skip, score, restart, clear","system"); return; }
+    if(text==="hint"){ print("Hint: "+trivia[idx].hint,"system"); return; }
+    if(text==="skip"){ print("Skipped! Answer was: "+trivia[idx].a.join(", "),"system"); idx++; ask(); return; }
+    if(text==="score"){ print("Current score: "+score+"/"+trivia.length,"system"); return; }
+    if(text==="restart"){ idx=0; score=0; out.innerHTML=""; print("Restarting...","system"); ask(); return; }
+    if(text==="clear"){ out.innerHTML=""; return; }
+
+    const q = trivia[idx];
+    if(q.a.includes(text)){
+      print(" Correct! Great job! ","correct");
+      score++;
+      idx++;
+      ask();
+    } else {
+      print(" Not quite! Try again or type 'hint'.","wrong");
+    }
+  }
+
+  function finish(){
+    stage = "finished";
+    out.innerHTML="";
+    const wrap = document.createElement("div");
+    wrap.className="reward";
+    wrap.innerHTML = `
+      <div class="reward-emoji"></div>
+      <div>Congratulations!</div>
+      <div>You finished the Christmas Trivia with a score of <strong>${score}/${trivia.length}</strong>.</div>
+      <div style="margin-top:10px;">You’ve officially made <b>Santa’s Nice List!</b> ✨</div>
+    `;
+    out.appendChild(wrap);
+  }
+
+  btn.onclick = ()=>{
+    const val=input.value; 
+    print("> "+val,"prompt");
+    handle(val); 
+    input.value=""; 
+    input.focus();
+  };
+
+  input.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      const v=input.value; 
+      print("> "+v,"prompt"); 
+      handle(v); 
+      input.value="";
+    }
+  });
+
+  intro();
+})();
+</script>
