@@ -4,18 +4,30 @@
   const mount = document.getElementById("xmas-terminal-widget");
   mount.innerHTML = `
   <style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: #07140b;
+  }
+
   .xmas-wrap {
     font-family: 'Courier New', monospace;
     background: radial-gradient(circle at top, #12301c 0%, #07140b 80%);
     color: #fffdf5;
-    border-radius: 12px;
-    border: 2px solid rgba(255,255,255,0.1);
-    box-shadow: 0 0 30px rgba(255, 0, 0, 0.25), 0 0 45px rgba(0, 255, 0, 0.15);
-    max-width: 700px;
-    margin: 20px auto;
+    border-radius: 0;
+    border: none;
+    box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.25), inset 0 0 45px rgba(0, 255, 0, 0.15);
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
     padding: 18px;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Snow animation */
@@ -39,22 +51,24 @@
   .xmas-header {
     color:#ffdf80;
     font-weight:700;
-    font-size:20px;
+    font-size: clamp(16px, 3vw, 24px);
     text-shadow:0 0 10px #ff3b3b, 0 0 18px #ffdf80;
     margin-bottom:10px;
     text-align:center;
+    z-index:2;
   }
 
   .xmas-output {
     background:#101b12;
     border-radius:8px;
     padding:12px;
-    height:260px;
-    overflow:auto;
-    font-size:14px;
+    flex:1;
+    overflow-y:auto;
+    font-size: clamp(12px, 2vw, 16px);
     line-height:1.45;
     box-shadow:inset 0 0 20px rgba(0,0,0,0.6);
     border:1px solid rgba(255,255,255,0.1);
+    z-index:2;
   }
 
   .xmas-line{margin:3px 0;}
@@ -62,7 +76,13 @@
   .xmas-line.system{color:#ffdf80;}
   .xmas-line.correct{color:#90ff9b;}
   .xmas-line.wrong{color:#ff7070;}
-  .xmas-input{display:flex;gap:8px;margin-top:10px;}
+
+  .xmas-input {
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+    z-index:2;
+  }
 
   .xmas-input input{
     flex:1;
@@ -70,19 +90,19 @@
     color:#dcffe2;
     border:1px solid rgba(255,255,255,0.15);
     border-radius:6px;
-    padding:8px;
+    padding:10px;
     font-family:inherit;
-    font-size:14px;
+    font-size: clamp(12px, 2vw, 16px);
   }
 
   .xmas-btn{
     background:linear-gradient(145deg,#c60000,#ff3636);
     border:none;
     color:#fff5e0;
-    padding:8px 10px;
+    padding:10px 12px;
     border-radius:6px;
     cursor:pointer;
-    font-size:13px;
+    font-size: clamp(12px, 2vw, 16px);
     box-shadow:0 0 10px rgba(255,0,0,0.4);
     transition:all 0.25s ease;
   }
@@ -94,22 +114,23 @@
 
   .xmas-footer{
     text-align:center;
-    font-size:12px;
+    font-size: clamp(10px, 2vw, 13px);
     color:#8aff8d;
     margin-top:8px;
     text-shadow:0 0 4px #2cff2c;
+    z-index:2;
   }
 
   .reward{
     text-align:center;
-    font-size:16px;
+    font-size:clamp(14px, 2.5vw, 18px);
     padding:14px;
     color:#fff8e3;
     text-shadow:0 0 10px #ffdf80, 0 0 15px #ff3b3b;
   }
 
   .reward-emoji{
-    font-size:40px;
+    font-size: clamp(30px, 8vw, 60px);
     display:block;
     margin-bottom:8px;
     animation:pulse 1.6s ease-in-out infinite;
@@ -120,20 +141,20 @@
     50%{transform:scale(1.1);}
     100%{transform:scale(1);}
   }
-</style>
+  </style>
 
-<div class="xmas-wrap">
-  <div class="xmas-snow"></div>
-  <div class="xmas-header">Christmas Trivia Terminal</div>
-  <div class="xmas-output" id="xmasOut" aria-live="polite"></div>
-  <div class="xmas-input">
-    <input id="xmasInput" placeholder="Type your answer or command" />
-    <button id="xmasSend" class="xmas-btn">Enter</button>
+  <div class="xmas-wrap">
+    <div class="xmas-snow"></div>
+    <div class="xmas-header">Christmas Trivia Terminal</div>
+    <div class="xmas-output" id="xmasOut" aria-live="polite"></div>
+    <div class="xmas-input">
+      <input id="xmasInput" placeholder="Type your answer or command" />
+      <button id="xmasSend" class="xmas-btn">Enter</button>
+    </div>
+    <div class="xmas-footer">
+      Type <code>start</code> to begin. Type <code>help</code> for commands.
+    </div>
   </div>
-  <div class="xmas-footer">
-    Type <code>start</code> to begin. Type <code>help</code> for commands.
-  </div>
-</div>
   `;
 
   const trivia = [
@@ -233,7 +254,7 @@
     const wrap = document.createElement("div");
     wrap.className="reward";
     wrap.innerHTML = `
-      <div class="reward-emoji"></div>
+      <div class="reward-emoji">🎅</div>
       <div>Congratulations!</div>
       <div>You finished the Christmas Trivia with a score of <strong>${score}/${trivia.length}</strong>.</div>
       <div style="margin-top:10px;">You’ve officially made <b>Santa’s Nice List!</b> ✨</div>
@@ -241,23 +262,8 @@
     out.appendChild(wrap);
   }
 
-  btn.onclick = ()=>{
-    const val=input.value; 
-    print("> "+val,"prompt");
-    handle(val); 
-    input.value=""; 
-    input.focus();
-  };
-
-  input.addEventListener("keydown",e=>{
-    if(e.key==="Enter"){
-      e.preventDefault();
-      const v=input.value; 
-      print("> "+v,"prompt"); 
-      handle(v); 
-      input.value="";
-    }
-  });
+  btn.onclick = ()=>{ const val=input.value; print("> "+val,"prompt"); handle(val); input.value=""; input.focus(); };
+  input.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); const v=input.value; print("> "+v,"prompt"); handle(v); input.value=""; } });
 
   intro();
 })();
